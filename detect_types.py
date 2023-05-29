@@ -12,6 +12,10 @@ It then computes if the majority of values in each column are of the same type, 
 proportion of values in the column is higher than the threshold, it returns that type for the column. 
 
 returns a dict of the type of each column (if determinable). If type is not determinable, then returns 'inconclusive'
+
+Example:
+    command: py detect_types.py ./example/news_decline.csv 0.9
+    output: {'Show': 'string', ' "2009"': 'float', ' "2010"': 'float', ' "2011"': 'float', ' "creation-date"': 'date', ' "overall score"': 'int'}
 '''
 
 def is_bool(string):
