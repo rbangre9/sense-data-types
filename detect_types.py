@@ -6,12 +6,12 @@ from dateutil.parser import parse
 this script takes in two command line arguments, 
     
     1. PATH to file 
-    2. sensitivity 
+    2. threshold 
 
 It then computes if the majority of values in each column are of the same type, and if the
-proportion of values in the column is higher than the sensitivity, it returns that type for the column. 
+proportion of values in the column is higher than the threshold, it returns that type for the column. 
 
-returns a dict of the type of each column (if determinable)
+returns a dict of the type of each column (if determinable). If type is not determinable, then returns 'inconclusive'
 '''
 
 def is_bool(string):
@@ -19,7 +19,7 @@ def is_bool(string):
     if string == 'yes' or string == 'no' or string == 'true' or string == 'false': return True
     return False
 
-def get_types(data_path, sensitivity):
+def get_types(data_path, threshold):
     data = pd.read_csv(data_path)
     columns = list(data.columns)
     res = {} 
@@ -50,7 +50,7 @@ def get_types(data_path, sensitivity):
         accuracies["date"] = float(column_types["date"] / len(column_data))
         accuracies["bool"] = float(column_types["bool"] / len(column_data))
 
-        data_type = max(accuracies, key=accuracies.get) if accuracies[max(accuracies, key=accuracies.get)] >= sensitivity else "inconclusive"
+        data_type = max(accuracies, key=accuracies.get) if accuracies[max(accuracies, key=accuracies.get)] >= threshold else "inconclusive"
         res[column] = data_type
     
     return res 
