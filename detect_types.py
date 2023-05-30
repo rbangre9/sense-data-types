@@ -1,6 +1,5 @@
 import pandas as pd
 import random
-import time
 import sys
 import multiprocessing
 from dateutil.parser import parse
@@ -80,8 +79,4 @@ def main(data_path):
         print(get_types(data))
 
 if __name__ == "__main__":
-    start_time = time.time()
     main(sys.argv[1])
-    end_time = time.time() 
-    run_time = end_time - start_time
-    print(run_time)
