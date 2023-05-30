@@ -15,7 +15,8 @@ returns a dictionary with the key-value mapping of column-name to type
 
 Example:
     command: py detect_types.py ./example/news_decline.csv 2.9
-    output: {'Show': 'string', ' "2009"': 'float', ' "2010"': 'float', ' "2011"': 'float', ' "creation-date"': 'date', ' "overall score"': 'int'}
+    output: {'Show': 'string', ' "2009"': 'float', ' "2010"': 'float', ' "2011"': 'float', 
+                '"creation-date"': 'date', ' "overall score"': 'int'}
 '''
 
 DATE = "date"
