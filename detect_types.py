@@ -1,5 +1,6 @@
 import pandas as pd
 import random
+import time
 import sys
 import multiprocessing
 from dateutil.parser import parse
@@ -26,6 +27,7 @@ BOOL = "bool"
 NOT_FOUND = "not found"
 THRESHOLD = 0.9
 SAMPLE_SIZE = 1000
+MULTIPROCESS_SIZE = 20000
 
 def is_bool(string):
     string = string.lower()
@@ -36,7 +38,7 @@ def process_column(column_data):
     column_types = {STRING: 0, INT: 0, FLOAT: 0, DATE: 0, BOOL: 0}
     unique_column_data = set(column_data)
     column_length = len(column_data)
-
+    
     if len(unique_column_data) == 2 and all(is_bool(value) for value in unique_column_data): return BOOL
     if pd.api.types.is_integer_dtype(column_data): return INT
     if pd.api.types.is_float_dtype(column_data): return FLOAT
@@ -56,10 +58,10 @@ def process_column(column_data):
     if float(column_types[STRING] / true_sample_size) >= THRESHOLD: return STRING
     return NOT_FOUND
 
-def get_types(data_path):
-    data = pd.read_csv(data_path)
-    data.columns = data.columns.str.strip()  # Clean column names
+def get_types(data):
+    return {column: process_column(data[column]) for column in data.columns}
 
+def get_types_mp(data):
     pool = multiprocessing.Pool()
     results = pool.map(process_column, [data[column] for column in data.columns])
     pool.close()
@@ -67,8 +69,19 @@ def get_types(data_path):
 
     return dict(zip(data.columns, results))
 
-def main(data_path): 
-    print(get_types(data_path))
+def main(data_path):
+    data = pd.read_csv(data_path)
+    data.columns = data.columns.str.strip()  # Clean column names
+    data_size = len(data)
+    
+    if data_size > MULTIPROCESS_SIZE: 
+        print(get_types_mp(data))
+    else: 
+        print(get_types(data))
 
 if __name__ == "__main__":
+    start_time = time.time()
     main(sys.argv[1])
+    end_time = time.time() 
+    run_time = end_time - start_time
+    print(run_time)
