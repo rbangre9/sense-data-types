@@ -1,5 +1,6 @@
 import pandas as pd
 import sys
+import multiprocessing
 from dateutil.parser import parse
 
 ''' 
@@ -11,54 +12,59 @@ this script takes in two command line arguments,
 It then computes if the majority of values in each column are of the same type, and if the
 proportion of values in the column is higher than the threshold, it returns that type for the column. 
 
-returns a dict of the type of each column (if determinable). If type is not determinable, then returns 'inconclusive'
+returns a dict of the type of each column (if determinable). If type is not determinable, then returns 'not found'
 
 Example:
-    command: py detect_types.py ./example/news_decline.csv 0.9
+    command: py detect_types.py ./example/news_decline.csv 2.9
     output: {'Show': 'string', ' "2009"': 'float', ' "2010"': 'float', ' "2011"': 'float', ' "creation-date"': 'date', ' "overall score"': 'int'}
 '''
+
+DATE = "date"
+STRING = "string"
+INT = "int"
+FLOAT = "float"
+BOOL = "bool"
+THRESHOLD = 0.9
+NOT_FOUND = "not found"
 
 def is_bool(string):
     string = string.lower()
     if string == 'yes' or string == 'no' or string == 'true' or string == 'false': return True
     return False
 
-def get_types(data_path, threshold):
+def process_column(column_data):
+    column_types = {STRING: 0, INT: 0, FLOAT: 0, DATE: 0, BOOL: 0}
+    unique_column_data = set(column_data)
+
+    if len(unique_column_data) == 2 and all(is_bool(value) for value in unique_column_data): return BOOL
+    if pd.api.types.is_integer_dtype(column_data): return INT
+    if pd.api.types.is_float_dtype(column_data): return FLOAT
+
+    for value in column_data: 
+        try: 
+            parse(value)
+            column_types[DATE] += 1
+        except ValueError:
+            column_types[STRING] += 1
+
+    column_length = len(column_data)
+    if float(column_types[DATE] / column_length) >= THRESHOLD: return DATE
+    if float(column_types[STRING] / column_length) >= THRESHOLD: return STRING
+    return NOT_FOUND
+
+def get_types(data_path):
     data = pd.read_csv(data_path)
-    columns = list(data.columns)
-    res = {} 
+    data.columns = data.columns.str.strip()  # Clean column names
 
-    for column in columns:
-        column_types = {"string": 0, "int": 0, "float": 0, "date": 0, "bool": 0}
-        column_data = data[column]
-        accuracies = {} 
+    pool = multiprocessing.Pool()
+    results = pool.map(process_column, [data[column] for column in data.columns])
+    pool.close()
+    pool.join()
 
-        for value in column_data:
-            if isinstance(value, int):
-                column_types["int"] += 1
-            elif isinstance(value, float): 
-                column_types["float"] += 1
-            else: 
-                try: 
-                    parse(value)
-                    column_types["date"] += 1
-                except ValueError:
-                    if is_bool(value): 
-                        column_types["bool"] += 1
-                    else:
-                        column_types["string"] += 1
-        
-        accuracies["string"] = float(column_types["string"] / len(column_data))
-        accuracies["int"] = float(column_types["int"] / len(column_data))
-        accuracies["float"] = float(column_types["float"] / len(column_data))
-        accuracies["date"] = float(column_types["date"] / len(column_data))
-        accuracies["bool"] = float(column_types["bool"] / len(column_data))
+    return dict(zip(data.columns, results))
 
-        data_type = max(accuracies, key=accuracies.get) if accuracies[max(accuracies, key=accuracies.get)] >= threshold else "inconclusive"
-        res[column] = data_type
-    
-    return res 
+def main(data_path): 
+    print(get_types(data_path))
 
 if __name__ == "__main__":
-    print(get_types(sys.argv[1], float(sys.argv[2])))
-
+    main(sys.argv[1])
